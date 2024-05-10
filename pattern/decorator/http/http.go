@@ -3,29 +3,32 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
-type handler func(w http.ResponseWriter, r *http.Request)
+type handleFunc func(w http.ResponseWriter, r *http.Request)
 
-func loggerDecorator(h handler) handler {
+func withLog(h handleFunc) handleFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Begin loggerDecorator")
-		defer func() {
-			log.Println("End loggerDecorator")
-		}()
+		log.Printf("Begin loggerDecorator %v\n", r.URL.Path)
 		h(w, r)
+		log.Println("End loggerDecorator")
 	}
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
-	log.Println("Root")
-	fmt.Fprint(w, "root")
+	fmt.Fprint(w, "Root")
 }
 
-var Root = loggerDecorator(root)
+func randomTime(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+	fmt.Fprint(w, "randomtime")
+}
 
 func main() {
-	http.HandleFunc("/", Root)
+	http.HandleFunc("/", withLog(root))
+	http.HandleFunc("/randomtime", withLog(randomTime))
 	http.ListenAndServe(":8080", nil)
 }
